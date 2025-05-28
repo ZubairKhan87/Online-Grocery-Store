@@ -100,3 +100,49 @@ exports.getOrderDetails = async (req, res) => {
 };
 
 
+
+// Cancel an order
+exports.cancelOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user.id; 
+    // Find the order
+    const order = await Order.findById(orderId);
+    
+    // Check if order exists
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    
+    // Verify that the order belongs to the current user
+    if (order.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: 'Unauthorized to cancel this order' });
+    }
+    
+    // Check if the order is still in 'processing' status
+    if (order.orderStatus !== 'processing') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot cancel order that has been shipped or delivered'
+      });
+    }
+    
+    // Update the order status to 'cancelled'
+    order.orderStatus = 'cancelled';
+    await order.save();
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Order has been cancelled successfully',
+      order
+    });
+    
+  } catch (error) {
+    console.error('Error cancelling order:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to cancel order. Please try again.',
+      error: error.message
+    });
+  }
+};

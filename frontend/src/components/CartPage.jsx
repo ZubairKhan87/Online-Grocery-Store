@@ -103,12 +103,13 @@ const CartPage = () => {
           <ShoppingCart className="mr-3 text-green-600" size={32} />
           Your Cart
         </h1>
-        <Link 
+        {( cartItems.length >0 && <Link 
           to="/checkout" 
           className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition duration-300 shadow-md"
         >
           Proceed to Checkout
         </Link>
+        )}
       </div>
 
       {cartItems.length === 0 ? (
@@ -116,7 +117,7 @@ const CartPage = () => {
           <ShoppingCart size={64} className="mx-auto text-green-500 mb-4" />
           <p className="text-xl text-gray-600">Your cart is empty</p>
           <Link 
-            to="/products" 
+            to="/" 
             className="mt-4 inline-block bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition duration-300"
           >
             Continue Shopping

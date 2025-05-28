@@ -48,7 +48,7 @@ const Navbar = () => {
       // Optionally handle different error scenarios
       if (error.response?.status === 401) {
         // Handle unauthorized access (e.g., redirect to login)
-        navigate('/login');
+        navigate('/');
       }
     }
   };

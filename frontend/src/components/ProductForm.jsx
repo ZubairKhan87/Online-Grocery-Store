@@ -55,6 +55,7 @@ const Categories = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-2">Shop By Category</h2>
+          
           <p className="text-gray-600">Browse our wide selection of fresh products</p>
         </div>
 
@@ -89,7 +90,7 @@ const Categories = () => {
 // src/components/ProductCard.js
 import { AuthContext } from './AuthContext';
 import axios from 'axios';
-import { toast } from 'react-toastify'; // or whatever notification library you use
+import { toast } from 'react-toastify'; 
 
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);

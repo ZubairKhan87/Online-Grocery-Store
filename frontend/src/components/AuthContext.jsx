@@ -1,4 +1,3 @@
-// 1. First, ensure the AuthContext file is created properly (src/context/AuthContext.js)
 import { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 

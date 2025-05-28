@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Package, 
@@ -7,14 +7,18 @@ import {
   CalendarDays, 
   DollarSign, 
   Truck, 
-  CreditCard 
+  CreditCard,
+  AlertTriangle
 } from 'lucide-react';
 
 const OrderDetailsPage = () => {
   const { orderId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Fetch order details
   useEffect(() => {
@@ -27,6 +31,9 @@ const OrderDetailsPage = () => {
 
         setOrder(response.data.order);
         setIsLoading(false);
+        
+        // Debug: Log the order and check its structure
+        console.log("Fetched order:", response.data.order);
       } catch (error) {
         console.error('Error fetching order details:', error);
         setError('Unable to fetch order details. Please try again later.');
@@ -36,6 +43,68 @@ const OrderDetailsPage = () => {
 
     fetchOrderDetails();
   }, [orderId]);
+
+  // Handle order cancellation
+  const handleCancelOrder = async () => {
+    try {
+      setCancelLoading(true);
+      const response = await axios.patch(
+        `http://localhost:5000/api/cancel-order/${orderId}`,
+        {},
+        { withCredentials: true }
+      );
+
+      // Update the order in state
+      setOrder(response.data.order);
+      setShowConfirmModal(false);
+      
+      // Show success message (you can use a toast notification library here)
+      alert('Order cancelled successfully');
+      
+      setCancelLoading(false);
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      setError(error.response?.data?.message || 'Failed to cancel order. Please try again.');
+      setCancelLoading(false);
+      setShowConfirmModal(false);
+    }
+  };
+
+  // Confirmation Modal
+  const CancelConfirmationModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
+        <div className="flex items-center mb-4 text-red-600">
+          <AlertTriangle size={24} className="mr-2" />
+          <h3 className="text-xl font-bold">Cancel Order</h3>
+        </div>
+        <p className="mb-6">Are you sure you want to cancel this order? This action cannot be undone.</p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => setShowConfirmModal(false)}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+            disabled={cancelLoading}
+          >
+            No, Keep Order
+          </button>
+          <button
+            onClick={handleCancelOrder}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
+            disabled={cancelLoading}
+          >
+            {cancelLoading ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                Cancelling...
+              </>
+            ) : (
+              'Yes, Cancel Order'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   // Render loading state
   if (isLoading) {
@@ -86,13 +155,16 @@ const OrderDetailsPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen bg-gray-50">
+      {showConfirmModal && <CancelConfirmationModal />}
+      
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-green-700 flex items-center">
             <Package className="mr-3 text-green-600" size={32} />
             Order Details
           </h1>
-          {renderStatusBadge(order.status)}
+          {/* Use the status field returned from API here */}
+          {renderStatusBadge(order.status || order.orderStatus)}
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -107,6 +179,9 @@ const OrderDetailsPage = () => {
               </p>
               <p className="text-gray-600">
                 <strong>Order Date:</strong> {new Date(order.createdAt).toLocaleString()}
+              </p>
+              <p className="text-gray-600">
+                <strong>Status:</strong> {order.status || order.orderStatus}
               </p>
             </div>
             <div>
@@ -179,12 +254,15 @@ const OrderDetailsPage = () => {
           >
             Back to Orders
           </Link>
-          {order.status === 'processing' && (
+          
+          {/* Check both possible status field names */}
+          {(order.status === 'processing' || order.orderStatus === 'processing') && (
             <button 
-              className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition duration-300"
-              // Add cancel order functionality if needed
+              className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition duration-300"
+              onClick={() => setShowConfirmModal(true)}
+              disabled={cancelLoading}
             >
-              Cancel Order
+              {cancelLoading ? 'Cancelling...' : 'Cancel Order'}
             </button>
           )}
         </div>

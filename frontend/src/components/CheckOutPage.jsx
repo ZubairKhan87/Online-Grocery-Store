@@ -24,6 +24,7 @@ const CheckoutPage = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
 
   // Fetch cart items
   useEffect(() => {
@@ -59,12 +60,40 @@ const CheckoutPage = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Validate shipping address
+  const validateShippingAddress = () => {
+    const errors = {};
+    const requiredFields = ['street', 'city', 'state', 'zip'];
+    
+    requiredFields.forEach(field => {
+      if (!shippingAddress[field].trim()) {
+        errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
+      }
+    });
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   // Proceed to next step
   const handleNextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(prev => prev + 1);
+    if (currentStep === 1) {
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      // Validate shipping address before proceeding
+      if (validateShippingAddress()) {
+        setCurrentStep(3);
+      }
     }
   };
 
@@ -77,6 +106,15 @@ const CheckoutPage = () => {
 
   // Place order
   const handlePlaceOrder = async () => {
+    // Ensure payment method is selected
+    if (!paymentMethod) {
+      setFormErrors(prev => ({
+        ...prev,
+        paymentMethod: 'Please select a payment method'
+      }));
+      return;
+    }
+
     try {
       setIsLoading(true);
       const orderData = {
@@ -93,16 +131,10 @@ const CheckoutPage = () => {
         withCredentials: true
       });
 
-      console.log("response of orders",response)
-      console.log("response of orders",response.data)
-
-
       // Clear cart after successful order
       await axios.delete('http://localhost:5000/api/cart/clear', {
         withCredentials: true
       });
-
-
 
       // Redirect to order confirmation
       navigate('/order-confirmation', { 
@@ -180,42 +212,74 @@ const CheckoutPage = () => {
         Shipping Address
       </h2>
       <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="text"
-          name="street"
-          value={shippingAddress.street}
-          onChange={handleAddressChange}
-          placeholder="Street Address"
-          className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        />
-        <input
-          type="text"
-          name="city"
-          value={shippingAddress.city}
-          onChange={handleAddressChange}
-          placeholder="City"
-          className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        />
-        <input
-          type="text"
-          name="state"
-          value={shippingAddress.state}
-          onChange={handleAddressChange}
-          placeholder="State/Province"
-          className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        />
-        <input
-          type="text"
-          name="zip"
-          value={shippingAddress.zip}
-          onChange={handleAddressChange}
-          placeholder="Zip/Postal Code"
-          className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          required
-        />
+        <div className="flex flex-col">
+          <input
+            type="text"
+            name="street"
+            value={shippingAddress.street}
+            onChange={handleAddressChange}
+            placeholder="Street Address *"
+            className={`w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              formErrors.street ? 'border-red-500' : ''
+            }`}
+            required
+          />
+          {formErrors.street && (
+            <p className="text-red-500 text-sm mt-1">{formErrors.street}</p>
+          )}
+        </div>
+        
+        <div className="flex flex-col">
+          <input
+            type="text"
+            name="city"
+            value={shippingAddress.city}
+            onChange={handleAddressChange}
+            placeholder="City *"
+            className={`w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              formErrors.city ? 'border-red-500' : ''
+            }`}
+            required
+          />
+          {formErrors.city && (
+            <p className="text-red-500 text-sm mt-1">{formErrors.city}</p>
+          )}
+        </div>
+        
+        <div className="flex flex-col">
+          <input
+            type="text"
+            name="state"
+            value={shippingAddress.state}
+            onChange={handleAddressChange}
+            placeholder="State/Province *"
+            className={`w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              formErrors.state ? 'border-red-500' : ''
+            }`}
+            required
+          />
+          {formErrors.state && (
+            <p className="text-red-500 text-sm mt-1">{formErrors.state}</p>
+          )}
+        </div>
+        
+        <div className="flex flex-col">
+          <input
+            type="text"
+            name="zip"
+            value={shippingAddress.zip}
+            onChange={handleAddressChange}
+            placeholder="Zip/Postal Code *"
+            className={`w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              formErrors.zip ? 'border-red-500' : ''
+            }`}
+            required
+          />
+          {formErrors.zip && (
+            <p className="text-red-500 text-sm mt-1">{formErrors.zip}</p>
+          )}
+        </div>
+        
         <div className="md:col-span-2">
           <select
             name="country"
@@ -255,7 +319,16 @@ const CheckoutPage = () => {
               name="paymentMethod"
               value={method}
               checked={paymentMethod === method}
-              onChange={() => setPaymentMethod(method)}
+              onChange={() => {
+                setPaymentMethod(method);
+                // Clear payment method error when selection is made
+                if (formErrors.paymentMethod) {
+                  setFormErrors(prev => ({
+                    ...prev,
+                    paymentMethod: ''
+                  }));
+                }
+              }}
               className="hidden"
             />
             <div className="flex items-center justify-between">
@@ -265,6 +338,9 @@ const CheckoutPage = () => {
           </label>
         ))}
       </div>
+      {formErrors.paymentMethod && (
+        <p className="text-red-500 text-sm mt-3">{formErrors.paymentMethod}</p>
+      )}
     </div>
   );
 

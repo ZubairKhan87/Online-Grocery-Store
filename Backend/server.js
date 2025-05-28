@@ -1,41 +1,54 @@
 const express = require("express");
 const dotenv = require("dotenv");
+// Load environment variables at the very beginning
+dotenv.config();
+
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const AdminBro = require('admin-bro');
 const AdminBroExpress = require('@admin-bro/express');
 const AdminBroMongoose = require('@admin-bro/mongoose');
-const connectDB = require("./config/db");
-const authRoutes = require("./routes/authRoutes");
-const { errorHandler } = require("./middleware/errorMiddleware");
+const mongoose = require("mongoose");
 const bcrypt = require('bcryptjs'); // For password encryption
-const productSearch = require("./routes/productSearch");
+const path = require("path");
 
-// Import  Mongoose models
+// Import MongoDB connection
+const connectDB = require("./config/db");
+
+// Import routes
+const authRoutes = require("./routes/authRoutes");
+const productSearch = require("./routes/productSearch");
+const productRoutes = require('./routes/productRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+
+// Import middleware
+const { errorHandler } = require("./middleware/errorMiddleware");
+
+// Import models
 const User = require('./models/User'); 
 const Product = require('./models/Product');  
 const Order = require('./models/orderSchema');
-const Category = require("./models/categorySchema")
-const productRoutes = require('./routes/productRoutes');
-const cartRoutes = require('./routes/cartRoutes')
-const orderRoutes = require('./routes/orderRoutes')
-require("dotenv").config();
-const mongoose = require("mongoose");
-const path = require("path");
-console.log("MONGO_URI:", process.env.MONGO_URI);  // Debugging step
-console.log(" KOi msla ni hai, code aik dum must chal rha abhi tak")
-dotenv.config();
-connectDB(); // Move  line here
+const Category = require("./models/categorySchema");
 
+// Debug MongoDB URI - make sure this is loaded
+console.log("MONGO_URI exists:", !!process.env.MONGO_URI);  // Safer debug (without exposing actual URI)
+
+// Connect to database
+connectDB();
+console.log("Code aik dum must chal rha abhi tak");
+
+// Initialize express
 const app = express();
-// ✅ Correct CORS configuration
-// Use  configuration
+
+// CORS configuration
 app.use(cors({
-    origin: 'http://localhost:5173', //  frontend origin
+    origin: 'http://localhost:5173', // frontend origin
     credentials: true // Allow credentials
-  }));
-// app.use(cors());
+}));
+
+// Middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
@@ -44,13 +57,14 @@ app.use(morgan("dev"));
 app.use("/api", productSearch);
 app.use("/api/auth", authRoutes);
 app.use('/api', productRoutes);
-app.use("/api",cartRoutes);
-app.use("/api",orderRoutes);
+app.use("/api", cartRoutes);
+app.use("/api", orderRoutes);
+
 // Error Middleware
 app.use(errorHandler);
 
+// AdminBro setup
 AdminBro.registerAdapter(AdminBroMongoose);
-// // Initialize AdminBro
 const adminBro = new AdminBro({
   databases: [mongoose],
   rootPath: '/admin',
